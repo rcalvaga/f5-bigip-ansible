@@ -1,0 +1,95 @@
+- name: F5 BIG-IP Create a Pool and Pool Members
+  hosts: bigip
+  connection: local
+  
+  vars:
+     pool_name: pool1
+     pool_member1: {name: "pool-member1", ip: "10.2.1.1"}
+     pool_member2: {name: "pool-member2", ip: "10.2.1.2"}
+
+  tasks:
+      - name: Create a Pool within F5 BIG-IP
+        bigip_pool:
+            server: "{{ inventory_hostname }}"
+            user: "admin"
+            password: "admin"
+            name: "{{ pool_name }}"
+            description: "HTTP and HTTPS LTM Pool"
+            lb_method: "round_robin"
+            service_down_action: drop
+            monitors: 
+                 - /Common/http
+                 - /Common/https
+            monitor_type: and_list
+            state: present
+
+      - name: Drop members out of "{{ pool_name }}"
+        bigip_pool_member:
+            server: "{{ inventory_hostname }}"
+            user: "admin"
+            password: "admin"
+            state: "absent"
+            host: "{{ item }}"
+            pool: "{{ pool_name }}"
+            port: "80"
+        with_items:
+             - "{{ pool_member1.name }}"
+             - "{{ pool_member2.name }}"
+
+      - name: Intermediate processing
+        debug:
+            msg: "Upgrade some software"
+ 
+      - name: More intermediate processing
+        debug:
+            msg: "Install some configuration"
+ 
+      - name: Add "{{ pool_member1.name }}" node back
+        bigip_node:
+            server: "{{ inventory_hostname }}"
+            user: "admin"
+            password: "admin"
+            name: "{{ pool_member1.name }}"
+            host: "{{ pool_member1.ip }}"
+            description: A member of HTTP/HTTPS LTM Pool
+            state: "present"
+ 
+      - name: Add "{{ pool_member2.name }}" node back
+        bigip_node:
+            server: "{{ inventory_hostname }}"
+            user: "admin"
+            password: "admin"
+            name: "{{ pool_member2.name }}"
+            host: "{{ pool_member2.ip }}"
+            description: A member of HTTP/HTTPS LTM Pool
+            state: "present"
+ 
+      - name: Add "{{ pool_member1.name }}" back to "{{ pool_name }}"
+        bigip_pool_member:
+            server: "{{ inventory_hostname }}"
+            user: "admin"
+            password: "admin"
+            host: "{{ pool_member1.name }}"
+            description: A member of HTTP/HTTPS LTM Pool
+            pool: "{{ pool_name }}"
+            port: "{{item}}"
+            state: "present"
+            monitor_state: enabled
+        with_items:
+              - 80
+              - 443
+ 
+      - name: Add "{{ pool_member2.name }}" back to "{{ pool_name }}"
+        bigip_pool_member:
+            server: "{{ inventory_hostname }}"
+            user: "admin"
+            password: "admin"
+            host: "{{ pool_member2.name }}"
+            description: A member of HTTP/HTTPS LTM Pool
+            pool: "{{ pool_name }}"
+            port: "{{item}}"
+            state: "present"
+            monitor_state: enabled
+        with_items:
+              - 80
+              - 443

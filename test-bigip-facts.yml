@@ -1,0 +1,11 @@
+- name: Test bigip_facts
+  hosts: bigip
+  connection: local
+ 
+  tasks:
+      - name: Get all of the facts from my BIG-IP
+        bigip_facts:
+            server: "{{ inventory_hostname }}"
+            user: "admin"
+            password: "admin"
+            include: "system_info"

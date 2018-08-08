@@ -1,0 +1,67 @@
+- name: Test bigip_facts
+  hosts: bigip
+  connection: local
+
+  vars:
+      cli:
+          host: "{{ inventory_hostname }}"
+          username: "root"
+          password: "default"
+          port: 22
+ 
+  tasks:
+      - name: Get all of the facts from my BIG-IP
+        bigip_facts:
+            server: "{{ inventory_hostname }}"
+            user: "admin"
+            password: "admin"
+            include: "system_info"
+
+      - name: run show version on remote devices
+        bigip_command:
+            commands: 
+                - "show sys version"
+            provider: "{{ cli }}"
+        register: result
+
+      - name: run show version and check to see if output contains BIG-IP
+        bigip_command:
+            commands: show sys version
+            wait_for: result[0] contains BIG-IP
+            server: "{{ inventory_hostname }}"
+            password: "admin"
+            user: "admin"
+            validate_certs: "false"
+
+      - name: run multiple commands on remote nodes
+        bigip_command:
+            commands:
+              - show sys version
+              - list ltm virtual
+            server: "{{ inventory_hostname }}"
+            password: "admin"
+            user: "admin"
+            validate_certs: "false"
+
+      - name: run multiple commands and evaluate the output
+        bigip_command:
+            commands:
+              - show sys version
+              - list ltm virtual
+            wait_for:
+              - result[0] contains BIG-IP
+              - result[1] contains my-vs
+            server: "{{ inventory_hostname }}"
+            password: "admin"
+            user: "admin"
+            validate_certs: "false"
+
+      - name: tmsh prefixes will automatically be handled
+        bigip_command:
+            commands:
+              - show sys version
+              - tmsh list ltm virtual
+            server: "{{ inventory_hostname }}"
+            password: "admin"
+            user: "admin"
+            validate_certs: "false"
